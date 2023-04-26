@@ -4,7 +4,7 @@ import pandas as pd
 from abc import ABCMeta, abstractmethod
 from idl import *
 from typing import Callable, Dict, List, Optional, Sequence, Tuple, Type, Union
-
+from _stats import get_backtesting_results
 
 class Strategy(metaclass=ABCMeta):
     def __init__(self, trading_engine, data, params):
@@ -53,7 +53,9 @@ class _TradingEngine:
         self.maker_fee = maker_fee
         self.taker_fee = taker_fee
         self.position = None
-        self.orders = []
+        self.pending_orders = []
+        self.trades = []
+        self.equity = None
         self.hedge_mode = hedge_mode
         self.exclusive_orders = exclusive_orders
 
@@ -74,6 +76,11 @@ class _TradingEngine:
         # Todo: implement
         pass
 
+    def handle_execution(self):
+
+        for order in self.pending_orders:
+            pass
+        self.pending_orders = []
 
 class Order:
     def __init__(self, side: Side,
@@ -102,18 +109,39 @@ class Order:
 
 class Backtest:
     def __init__(self, data: pd.DataFrame,
+                 strategy: Type[Strategy],
                  balance: Optional[float] = 1000000,
                  maker_fee: Optional[float] = 0,
                  taker_fee: Optional[float] = 0,
                  hedge_mode: Optional[bool] = False,
                  exclusive_orders: Optional[bool] = False):
-        self.data = data
+        self._results = None
+        self.data:pd.DataFrame = data
         self.balance = balance
         self.maker_fee = maker_fee
         self.taker_fee = taker_fee
         self.hedge_mode = hedge_mode
         self.exclusive_orders = exclusive_orders
 
+        self._strategy: Type[Strategy] = strategy
+
+
     def run(self, **kwargs) -> pd.Series:
-        # Todo: implement
-        pass
+
+        trading_engine = _TradingEngine(self.data, self.balance, self.maker_fee, self.taker_fee, self.hedge_mode, self.exclusive_orders)
+        strategy = self._strategy(trading_engine, self.data, kwargs)
+
+        strategy.init()
+
+        for i in range(len(self.data)):
+            strategy.data = self.data.iloc[:i]
+
+            strategy.next()
+            trading_engine.handle_execution()
+
+        else:
+            for trade in trading_engine.trades:
+                trade.close()
+
+        self._results = get_backtesting_results(data=self.data, trades=trading_engine.trades, equity=trading_engine.equity)
+        return self._results
