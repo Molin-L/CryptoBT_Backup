@@ -8,6 +8,11 @@ class Side(Enum):
     Buy = 1
     Sell = 2
 
+    def opposite(self):
+        if self == Side.Buy:
+            return Side.Sell
+        return Side.Buy
+
 class Position(Enum):
     Long = 1
     Short = 2
@@ -21,3 +26,12 @@ class OrderStatus(Enum):
     Canceled = 5
     Rejected = 6
     Expired = 7
+
+class SymbolType(Enum):
+    Spot = 1
+    Future = 2
+    Option = 3
+
+class TradeStatus(Enum):
+    Open = 1
+    Closed = 2

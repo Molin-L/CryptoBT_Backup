@@ -1,1 +1,2 @@
-from .CryptoBT import Strategy
+from .CryptoBT import Strategy, Backtest
+from . import lib
